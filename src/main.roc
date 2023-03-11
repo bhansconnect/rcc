@@ -3,19 +3,32 @@ app "rcc"
     imports [pf.Task.{ Task, await }, pf.Stderr, pf.File]
     provides [main] to pf
 
+
+# So my plan for actual preprocessing (no idea if it will work in practice) is
+#  1. load entire file
+#  2. copy to a new buffer removing backslash newlines as you go (add some debug info around lines merged)
+#  3. tokenize into preprocessor tokens (include line #, file, and kind)
+#  4. generate an output list of tokens based off of the input tokens (will require processing macros and running step 1 to 2 on other files)
+#  5. either dump to file from the final token list or pass the token list to a stricter c parser.
+
+# With this design, we will never generate a final preprocessed text file.
+# Instead we will just generate a giant list of references to the many input text files.
+# This is willingly and explicitly using a few large buffers.
+
+
 main : Str -> Task {} []
 main = \filename ->
     bytes <- File.readBytes filename |> await
-    when Str.fromUtf8 (removeBackSlashNewLines bytes) is
+    when Str.fromUtf8 (removeBackslashNewlines bytes) is
         Ok str ->
             Stderr.raw str
         Err _ ->
             crash "so sad"
 
 
-# Removes all cases of back slash followed by `\n`.
-removeBackSlashNewLines : List U8 -> List U8
-removeBackSlashNewLines = \src ->
+# Removes all cases of backslash followed by newline.
+removeBackslashNewlines : List U8 -> List U8
+removeBackslashNewlines = \src ->
     helper = \in, out ->
         when in is
             [b0, b1, b2, b3, b4, b5, b6, b7, ..] ->
@@ -30,9 +43,9 @@ removeBackSlashNewLines = \src ->
                 swar : U64
                 swar = Num.bitwiseOr b7654 b3210
 
-                matchBackSlash =
+                matchBackslash =
                     swar
-                    |> Num.bitwiseXor 0x5C5C5C5C5C5C5C5C # make it so that back slash bytes have a 0 value
+                    |> Num.bitwiseXor 0x5C5C5C5C5C5C5C5C # make it so that backslash bytes have a 0 value
                     |> Num.bitwiseAnd 0x7F7F7F7F7F7F7F7F # avoid overflow from utf8
                     |> Num.addWrap 0x7F7F7F7F7F7F7F7F    # Make it so that any value greater than zero has the first bit set.
                     |> Num.bitwiseOr swar                # Make utf8 also have its first bit set
@@ -42,10 +55,10 @@ removeBackSlashNewLines = \src ->
 
                 # The drop call here will be terribly slow until roc has seamless slices.
                 # Good test bed to make sure they work correctly.
-                if matchBackSlash > 0 then
+                if matchBackslash > 0 then
                     # We have at least one backslash.
                     # Do slow terrible very explicit fall back
-                    # TODO: make this reasonable. Preferably get the first back slash from the match and just check it.
+                    # TODO: make this reasonable. Preferably get the first backslash from the match and just check it.
                     when in is
                         ['\\', '\n', ..] ->
                             helper (List.drop in 2) out
@@ -193,31 +206,31 @@ removeBackSlashNewLines = \src ->
 
     T remaining cleaned = helper src (List.withCapacity (List.len src))
 
-    removeBackSlashNewLinesRemaining remaining cleaned
+    removeBackslashNewlinesRemaining remaining cleaned
 
-removeBackSlashNewLinesRemaining = \in, out ->
+removeBackslashNewlinesRemaining = \in, out ->
     when in is
         ['\\', '\n', ..] ->
-            removeBackSlashNewLinesRemaining (List.drop in 2) out
+            removeBackslashNewlinesRemaining (List.drop in 2) out
         ['\\', '\r', '\n', ..] ->
-            removeBackSlashNewLinesRemaining (List.drop in 3) out
+            removeBackslashNewlinesRemaining (List.drop in 3) out
         [x, ..] ->
             nextOut = List.append out x
-            removeBackSlashNewLinesRemaining (List.drop in 1) nextOut
+            removeBackslashNewlinesRemaining (List.drop in 1) nextOut
         [] ->
             out
 
 # Alternative impls to test performance
 
 # This is just a simple reference impl for performance testing.
-# removeBackSlashNewLines : List U8 -> List U8
-# removeBackSlashNewLines = \src ->
+# removeBackslashNewlines : List U8 -> List U8
+# removeBackslashNewlines = \src ->
 
-#     removeBackSlashNewLinesRemaining src (List.withCapacity (List.len src))
+#     removeBackslashNewlinesRemaining src (List.withCapacity (List.len src))
 
 # This version is testing the what the performance would be with explicit index.
-# removeBackSlashNewLines : List U8 -> List U8
-# removeBackSlashNewLines = \src ->
+# removeBackslashNewlines : List U8 -> List U8
+# removeBackslashNewlines = \src ->
 #     helper = \in, i, out ->
 #         when List.get in i is
 #             Ok '\\' ->
