@@ -9,3 +9,5 @@ It of course would be only focused on dev builds. It would maybe do some minor o
 One day, who knows it might even contain the linker.
 
 Anyway, for now, the goal is to make a basic preprocessor.
+
+I found [c-testsuite](https://github.com/c-testsuite/c-testsuite) which may be a good source of test cases for the compiler.
