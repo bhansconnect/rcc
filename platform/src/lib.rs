@@ -151,16 +151,15 @@ unsafe fn call_the_closure(closure_data_ptr: *const u8) -> i64 {
 
 #[no_mangle]
 pub extern "C" fn roc_fx_putLine(line: &RocStr) {
-    let string = line.as_str();
-    eprintln!("{}", string);
-    std::io::stdout().lock().flush();
+    eprintln!("{}", line.as_str());
 }
 
 #[no_mangle]
-pub extern "C" fn roc_fx_putRaw(line: &RocStr) {
-    let string = line.as_str();
-    eprint!("{}", string);
-    std::io::stdout().lock().flush();
+pub extern "C" fn roc_fx_putRaw(bytes: &RocList<u8>) {
+    std::io::stderr()
+        .lock()
+        .write_all(bytes.as_slice())
+        .unwrap();
 }
 
 fn getFileBytes(name: &RocStr) -> std::io::Result<RocList<u8>> {

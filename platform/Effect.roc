@@ -7,5 +7,5 @@ getFileBytes : Str -> Effect (List U8)
 
 putLine : Str -> Effect {}
 
-putRaw : Str -> Effect {}
+putRaw : List U8 -> Effect {}
 
