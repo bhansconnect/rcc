@@ -53,149 +53,32 @@ removeBackslashNewlines = \src ->
                 # Good test bed to make sure they work correctly.
                 if matchBackslash > 0 then
                     # We have at least one backslash.
-                    # Do slow terrible very explicit fall back
-                    # TODO: make this reasonable. Preferably get the first backslash from the match and just check it.
-                    when in is
-                        ['\\', '\n', ..] ->
-                            helper (List.drop in 2) out
+                    matchIndex = Num.countTrailingZeroBits matchBackslash // 8
+                    
+                    {before, others} = List.split in matchIndex
+                    # Backslash will be the first character of others.
+
+                    nextOut = List.concat out before
+                    when others is
                         ['\\', '\r', '\n', ..] ->
-                            helper (List.drop in 3) out
-                        [x0, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                            helper (List.drop in 3) nextOut
-                        [x0, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                            helper (List.drop in 4) nextOut
-                        [x0, x1, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                            helper (List.drop in 4) nextOut
-                        [x0, x1, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                            helper (List.drop in 5) nextOut
-                        [x0, x1, x2, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                            helper (List.drop in 5) nextOut
-                        [x0, x1, x2, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                            helper (List.drop in 6) nextOut
-                        [x0, x1, x2, x3, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                            helper (List.drop in 6) nextOut
-                        [x0, x1, x2, x3, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                            helper (List.drop in 7) nextOut
-                        [x0, x1, x2, x3, x4, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                                |> List.append x4
-                            helper (List.drop in 7) nextOut
-                        [x0, x1, x2, x3, x4, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                                |> List.append x4
-                            helper (List.drop in 8) nextOut
-                        [x0, x1, x2, x3, x4, x5, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                                |> List.append x4
-                                |> List.append x5
-                            helper (List.drop in 8) nextOut
-                        [x0, x1, x2, x3, x4, x5, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                                |> List.append x4
-                                |> List.append x5
-                            helper (List.drop in 9) nextOut
-                        [x0, x1, x2, x3, x4, x5, x6, '\\', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                                |> List.append x4
-                                |> List.append x5
-                                |> List.append x6
-                            helper (List.drop in 9) nextOut
-                        [x0, x1, x2, x3, x4, x5, x6, '\\', '\r', '\n', ..] ->
-                            nextOut =
-                                out
-                                |> List.append x0
-                                |> List.append x1
-                                |> List.append x2
-                                |> List.append x3
-                                |> List.append x4
-                                |> List.append x5
-                                |> List.append x6
-                            helper (List.drop in 10) nextOut
+                            helper (List.drop others 3) nextOut
+                        ['\\', '\n', ..] ->
+                            helper (List.drop others 2) nextOut
                         _ ->
-                            nextOut =
-                                out
-                                |> List.append b0
-                                |> List.append b1
-                                |> List.append b2
-                                |> List.append b3
-                                |> List.append b4
-                                |> List.append b5
-                                |> List.append b6
-                                |> List.append b7
-                            helper (List.drop in 8) nextOut
-                    else
-                        nextOut =
-                            out
-                            |> List.append b0
-                            |> List.append b1
-                            |> List.append b2
-                            |> List.append b3
-                            |> List.append b4
-                            |> List.append b5
-                            |> List.append b6
-                            |> List.append b7
-                        helper (List.drop in 8) nextOut
+                            # Not a match, so put the backslash in the output and continue.
+                            helper (List.drop others 1) (List.append nextOut '\\')
+                else
+                    nextOut =
+                        out
+                        |> List.append b0
+                        |> List.append b1
+                        |> List.append b2
+                        |> List.append b3
+                        |> List.append b4
+                        |> List.append b5
+                        |> List.append b6
+                        |> List.append b7
+                    helper (List.drop in 8) nextOut
 
             _ ->
                 T in out
