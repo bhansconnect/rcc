@@ -19,7 +19,9 @@ app "rcc"
 main : Str -> Task {} []
 main = \filename ->
     bytes <- File.readBytes filename |> await
-    Stderr.raw (removeBackslashNewlines bytes)
+    bytes
+    |> removeBackslashNewlines
+    |> Stderr.raw
 
 
 # Removes all cases of backslash followed by newline.
