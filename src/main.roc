@@ -210,60 +210,12 @@ removeBackslashNewlines = \src ->
 
 removeBackslashNewlinesRemaining = \in, out ->
     when in is
-        ['\\', '\n', ..] ->
-            removeBackslashNewlinesRemaining (List.drop in 2) out
         ['\\', '\r', '\n', ..] ->
             removeBackslashNewlinesRemaining (List.drop in 3) out
+        ['\\', '\n', ..] ->
+            removeBackslashNewlinesRemaining (List.drop in 2) out
         [x, ..] ->
             nextOut = List.append out x
             removeBackslashNewlinesRemaining (List.drop in 1) nextOut
         [] ->
             out
-
-# Alternative impls to test performance
-
-# This is just a simple reference impl for performance testing.
-# removeBackslashNewlines : List U8 -> List U8
-# removeBackslashNewlines = \src ->
-
-#     removeBackslashNewlinesRemaining src (List.withCapacity (List.len src))
-
-# This version is testing the what the performance would be with explicit index.
-# removeBackslashNewlines : List U8 -> List U8
-# removeBackslashNewlines = \src ->
-#     helper = \in, i, out ->
-#         when List.get in i is
-#             Ok '\\' ->
-#                 when List.get in (i + 1) is
-#                     Ok '\r' ->
-#                         when List.get in (i + 2) is
-#                             Ok '\n' ->
-#                                 helper in (i + 3) out
-#                             Ok x ->
-#                                 nextOut =
-#                                     out
-#                                     |> List.append '\\'
-#                                     |> List.append '\r'
-#                                     |> List.append x
-#                                 helper in (i + 3) nextOut
-#                             Err _ ->
-#                                 out
-#                     Ok '\n' ->
-#                         helper in (i + 2) out
-#                     Ok x ->
-#                         nextOut =
-#                             out
-#                             |> List.append '\\'
-#                             |> List.append x
-#                         helper in (i + 2) nextOut
-#                     Err _ ->
-#                         out
-#             Ok x ->
-#                 nextOut = List.append out x
-#                 helper in (i + 1) nextOut
-#             Err _ ->
-#                 out
-
-#     helper src 0 (List.withCapacity (List.len src))
-
-
