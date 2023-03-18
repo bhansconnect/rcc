@@ -21,13 +21,14 @@ main = \filename ->
     bytes <- File.readBytes filename |> await
     bytes
     |> removeBackslashNewlines
+    |> .0
     |> Stderr.raw
 
 
 # Removes all cases of backslash followed by newline.
-removeBackslashNewlines : List U8 -> List U8
+removeBackslashNewlines : List U8 -> (List U8, List U32)
 removeBackslashNewlines = \src ->
-    helper = \in, out ->
+    helper = \in, out, mi ->
         when in is
             [b0, b1, b2, b3, b4, b5, b6, b7, ..] ->
                 b76 = Num.bitwiseOr (b7 |> Num.toU64 |> Num.shiftLeftBy 56) (b6 |> Num.toU64 |> Num.shiftLeftBy 48)
@@ -63,12 +64,17 @@ removeBackslashNewlines = \src ->
                     nextOut = List.concat out before
                     when others is
                         ['\\', '\r', '\n', ..] ->
-                            helper (List.drop others 3) nextOut
+                            index = List.len nextOut |> Num.toU32
+                            helper (List.drop others 3) nextOut (List.append mi index)
                         ['\\', '\n', ..] ->
-                            helper (List.drop others 2) nextOut
+                            index = List.len nextOut |> Num.toU32
+                            helper (List.drop others 2) nextOut (List.append mi index)
+                        ['\\', '\r', ..] ->
+                            index = List.len nextOut |> Num.toU32
+                            helper (List.drop others 2) nextOut (List.append mi index)
                         _ ->
                             # Not a match, so put the backslash in the output and continue.
-                            helper (List.drop others 1) (List.append nextOut '\\')
+                            helper (List.drop others 1) (List.append nextOut '\\') mi
                 else
                     nextOut =
                         out
@@ -80,23 +86,28 @@ removeBackslashNewlines = \src ->
                         |> List.append b5
                         |> List.append b6
                         |> List.append b7
-                    helper (List.drop in 8) nextOut
+                    helper (List.drop in 8) nextOut mi
 
             _ ->
-                T in out
+                (in, out, mi)
 
-    T remaining cleaned = helper src (List.withCapacity (List.len src))
+    (remaining, cleaned, mergeIndices) = helper src (List.withCapacity (List.len src)) []
 
-    removeBackslashNewlinesRemaining remaining cleaned
+    removeBackslashNewlinesRemaining remaining cleaned mergeIndices
 
-removeBackslashNewlinesRemaining = \in, out ->
+removeBackslashNewlinesRemaining = \in, out, mergeIndices ->
     when in is
         ['\\', '\r', '\n', ..] ->
-            removeBackslashNewlinesRemaining (List.drop in 3) out
+            index = List.len out |> Num.toU32
+            removeBackslashNewlinesRemaining (List.drop in 3) out (List.append mergeIndices index)
         ['\\', '\n', ..] ->
-            removeBackslashNewlinesRemaining (List.drop in 2) out
+            index = List.len out |> Num.toU32
+            removeBackslashNewlinesRemaining (List.drop in 2) out (List.append mergeIndices index)
+        ['\\', '\r', ..] ->
+            index = List.len out |> Num.toU32
+            removeBackslashNewlinesRemaining (List.drop in 2) out (List.append mergeIndices index)
         [x, ..] ->
             nextOut = List.append out x
-            removeBackslashNewlinesRemaining (List.drop in 1) nextOut
+            removeBackslashNewlinesRemaining (List.drop in 1) nextOut mergeIndices
         [] ->
-            out
+            (out, mergeIndices)
