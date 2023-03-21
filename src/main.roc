@@ -23,11 +23,11 @@ app "rcc"
 main : Str -> Task {} []
 main = \filename ->
     bytes <- File.readBytes filename |> await
-    (mergedBytes, _mergeIndicies) = removeBackslashNewlines bytes
+    (mergedBytes, mergeIndicies) = removeBackslashNewlines bytes
 
     preprocessTokenize mergedBytes 0
     |> okOrCrash "fail to tokenize"
-    |> List.map debugDisplayPPToken
+    |> List.map (\tok -> debugDisplayPPToken tok mergedBytes mergeIndicies)
     |> Str.joinWith "\n"
     |> Str.toUtf8
     |> Stderr.raw
@@ -51,9 +51,13 @@ PPKind : [
     # TODO: add all punctuators
 ]
 
-debugDisplayPPToken = \{fileNum, offset, kind} ->
+debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
     fileNumStr = Num.toStr fileNum
-    offsetStr = Num.toStr offset
+    # This is hugely wasteful because it is done per token.
+    # Really this can be cached.
+    (line, col) = calculateLineCol mergedBytes mergeIndicies offset
+    lineStr = Num.toStr line
+    colStr = Num.toStr col
 
     kindStr =
         when kind is
@@ -64,7 +68,18 @@ debugDisplayPPToken = \{fileNum, offset, kind} ->
             CharacterConstant -> "CharacterConstant"
             Other -> "Other"
 
-    "{ file: \(fileNumStr), offset: \(offsetStr), kind: \(kindStr) }"
+    "{ file: \(fileNumStr), line: \(lineStr), col: \(colStr), kind: \(kindStr) }"
+
+calculateLineCol = \bytes, mergeIndicies, offset ->
+    extra = List.countIf mergeIndicies (\x -> x <= offset)
+    {before} = List.split bytes (Num.toNat offset)
+    line = (List.countIf before (\x -> x == '\n')) + extra + 1
+    col = List.walkBackwardsUntil before 0 \count, elem ->
+        if elem == '\n' then
+            Break count
+        else
+            Continue (count + 1)
+    (line, col)
 
 # Converts a List of Bytes into a List of C preprocessing tokens.
 # The tokens will still references the original list of bytes.
