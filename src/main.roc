@@ -26,7 +26,7 @@ main = \filename ->
     (mergedBytes, mergeIndicies) = removeBackslashNewlines bytes
 
     preprocessTokenize mergedBytes 0
-    |> okOrCrash "fail to tokenize"
+    |> okOrCrash "failed to tokenize"
     |> List.map (\tok -> debugDisplayPPToken tok mergedBytes mergeIndicies)
     |> Str.joinWith "\n"
     |> Str.toUtf8
