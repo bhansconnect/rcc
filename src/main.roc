@@ -74,7 +74,7 @@ calculateLineCol = \bytes, mergeIndicies, offset ->
     extra = List.countIf mergeIndicies (\x -> x <= offset)
     {before} = List.split bytes (Num.toNat offset)
     line = (List.countIf before (\x -> x == '\n')) + extra + 1
-    col = List.walkBackwardsUntil before 0 \count, elem ->
+    col = List.walkBackwardsUntil before 1 \count, elem ->
         if elem == '\n' then
             Break count
         else
@@ -105,16 +105,34 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
 
 consumeCommentsAndWhitespace = \bytes, offset ->
     when List.drop bytes offset is
-        ['\\', '\\', ..] ->
-            crash "TODO: consume to new line"
-        ['\\', '*', ..] ->
-            crash "TODO: consume to */"
+        ['/', '/', ..] ->
+            nextOffset = consumeRestOfLine bytes (offset + 2)
+            consumeCommentsAndWhitespace bytes nextOffset
+        ['/', '*', ..] ->
+            nextOffset = consumeMultilineComment bytes (offset + 2)
+            consumeCommentsAndWhitespace bytes nextOffset
         # [x, ..] if isWhitespace x -> Some reason this is breaking alias analysis
         [x, ..] ->
             if isWhitespace x then
                 consumeCommentsAndWhitespace bytes (offset + 1)
             else
                 offset
+        _ ->
+            offset
+
+consumeMultilineComment = \bytes, offset ->
+    when List.drop bytes offset is
+        ['*', '/', ..] ->
+            offset + 2
+        [_, ..] ->
+            consumeMultilineComment bytes (offset + 1)
+        [] ->
+            crash "file ended in the middle of a multi-line comment"
+
+consumeRestOfLine = \bytes, offset ->
+    when List.get bytes offset is
+        Ok x if x != '\n' ->
+            consumeRestOfLine bytes (offset + 1)
         _ ->
             offset
 
