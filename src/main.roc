@@ -15,6 +15,10 @@ app "rcc"
 # Instead we will just generate a giant list of references to the many input text files.
 # This is willingly and explicitly using a few large buffers.
 
+# Extra note, in a lot of cases, I am trying to write more idiomatic and nice Roc code.
+# This may cost too much perf and need to be changed in the future.
+# That said, I am trying to make more DOD friendly data structures.
+
 
 main : Str -> Task {} []
 main = \filename ->
