@@ -45,6 +45,13 @@ PPKind : [
     Number,
     CharacterConstant,
 
+    LBracket,
+    RBracket,
+    LParen,
+    RParen,
+    LSquiggle,
+    RSquiggle,
+
     # Is this really needed? "each non-white-space character that cannot be one of the above"
     Other
 
@@ -66,6 +73,12 @@ debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
             StringLiteral -> "StringLiteral"
             Number -> "Number"
             CharacterConstant -> "CharacterConstant"
+            LBracket -> "LBracket"
+            RBracket -> "RBracket"
+            LParen -> "LParen"
+            RParen -> "RParen"
+            LSquiggle -> "LSquiggle"
+            RSquiggle -> "RSquiggle"
             Other -> "Other"
 
     "{ file: \(fileNumStr), line: \(lineStr), col: \(colStr), kind: \(kindStr) }"
@@ -93,6 +106,18 @@ preprocessTokenizeHelper : List U8, List PPToken, Nat, U8 -> Result (List PPToke
 preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
     cleanedOffset = consumeCommentsAndWhitespace bytes offset
     when List.drop bytes cleanedOffset is
+        ['[', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LBracket 1
+        [']', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RBracket 1
+        ['(', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LParen 1
+        [')', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RParen 1
+        ['{', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LSquiggle 1
+        ['}', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RSquiggle 1
         [x, ..] if isIdentifierNonDigit x ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
 
@@ -102,6 +127,11 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
             Err (UnexpectedCharacter x)
         [] ->
             Ok tokens
+
+addPunctuator = \bytes, tokens, offset, fileNum, kind, size ->
+    nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind }
+
+    preprocessTokenizeHelper bytes nextTokens (offset + size) fileNum
 
 consumeCommentsAndWhitespace = \bytes, offset ->
     when List.drop bytes offset is
