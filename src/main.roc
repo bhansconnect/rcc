@@ -19,11 +19,94 @@ app "rcc"
 main : Str -> Task {} []
 main = \filename ->
     bytes <- File.readBytes filename |> await
-    bytes
-    |> removeBackslashNewlines
-    |> .0
+    (mergedBytes, _mergeIndicies) = removeBackslashNewlines bytes
+
+    preprocessTokenize mergedBytes 0
+    |> okOrCrash "fail to tokenize"
+    |> List.map debugDisplayPPToken
+    |> Str.joinWith "\n"
+    |> Str.toUtf8
     |> Stderr.raw
 
+# We are limitting the offset to a U32 and the file number to a U8.
+# This means at most 2GiB of source file and 256 included files is allowed.
+# These limits may be too small, but we shall see.
+PPToken : {offset: U32, fileNum: U8, kind: PPKind}
+
+# The kinds of preprocessor tokens.
+PPKind : [
+    Identifier,
+    HeaderName,
+    StringLiteral,
+    Number,
+    CharacterConstant,
+
+    # Is this really needed? "each non-white-space character that cannot be one of the above"
+    Other
+
+    # TODO: add all punctuators
+]
+
+debugDisplayPPToken = \{fileNum, offset, kind} ->
+    fileNumStr = Num.toStr fileNum
+    offsetStr = Num.toStr offset
+
+    kindStr =
+        when kind is
+            Identifier -> "Identifier"
+            HeaderName -> "HeaderName"
+            StringLiteral -> "StringLiteral"
+            Number -> "Number"
+            CharacterConstant -> "CharacterConstant"
+            Other -> "Other"
+
+    "{ file: \(fileNumStr), offset: \(offsetStr), kind: \(kindStr) }"
+
+# Converts a List of Bytes into a List of C preprocessing tokens.
+# The tokens will still references the original list of bytes.
+# This function expects backslash newlines to have already been dealt with.
+# This also requires the file index for error messages and debugging purposes.
+preprocessTokenize : List U8, U8 -> Result (List PPToken) _
+preprocessTokenize = \bytes, fileNum ->
+    # I really should loop and use offset as the core indexer instead of using drop and slices.
+    # That said, slices make this way nicer.
+    # Roc does not allow matching at an arbitrary location within a list, only at the beginning.
+    # Slices let me always be at the beginning and use Roc matching.
+    preprocessTokenizeHelper bytes [] 0 fileNum
+
+preprocessTokenizeHelper : List U8, List PPToken, U32, U8 -> Result (List PPToken) _
+preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
+    cleanedBytes = skipCommentsAndWhiteSpace bytes
+    when cleanedBytes is
+        [x, ..] if isIdentifierNonDigit x ->
+            (nextBytes, count) = consumeIdentifier bytes
+            nextTokens = List.append tokens { fileNum, offset, kind: Identifier }
+
+            preprocessTokenizeHelper nextBytes nextTokens (offset + count) fileNum
+        [x, ..] ->
+            Err (UnexpectedCharacter x)
+        [] ->
+            Ok tokens
+
+skipCommentsAndWhiteSpace = \bytes ->
+    # TODO: actually implement.
+    bytes
+
+consumeIdentifier = \bytes ->
+    helper = \b, count ->
+        when b is
+            [x, ..] if isIdentifier x ->
+                helper (List.dropFirst b) (count + 1)
+            _ ->
+                (b, count)
+
+    helper bytes 0
+
+isIdentifier = \x ->
+    (isIdentifierNonDigit x) || (x >= '0' && x <= '9')
+
+isIdentifierNonDigit = \x ->
+    (x >= 'A' && x <= 'Z') || (x >= 'a' && x <= 'z') || x == '_'
 
 # Removes all cases of backslash followed by newline.
 removeBackslashNewlines : List U8 -> (List U8, List U32)
@@ -111,3 +194,11 @@ removeBackslashNewlinesRemaining = \in, out, mergeIndices ->
             removeBackslashNewlinesRemaining (List.drop in 1) nextOut mergeIndices
         [] ->
             (out, mergeIndices)
+
+
+okOrCrash = \x, msg ->
+    when x is
+        Ok y -> y
+        Err e ->
+            dbg e
+            crash msg
