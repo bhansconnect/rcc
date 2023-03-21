@@ -68,39 +68,46 @@ debugDisplayPPToken = \{fileNum, offset, kind} ->
 # This also requires the file index for error messages and debugging purposes.
 preprocessTokenize : List U8, U8 -> Result (List PPToken) _
 preprocessTokenize = \bytes, fileNum ->
-    # I really should loop and use offset as the core indexer instead of using drop and slices.
-    # That said, slices make this way nicer.
-    # Roc does not allow matching at an arbitrary location within a list, only at the beginning.
-    # Slices let me always be at the beginning and use Roc matching.
     preprocessTokenizeHelper bytes [] 0 fileNum
 
-preprocessTokenizeHelper : List U8, List PPToken, U32, U8 -> Result (List PPToken) _
+preprocessTokenizeHelper : List U8, List PPToken, Nat, U8 -> Result (List PPToken) _
 preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
-    cleanedBytes = skipCommentsAndWhiteSpace bytes
-    when cleanedBytes is
+    cleanedOffset = consumeCommentsAndWhitespace bytes offset
+    when List.drop bytes cleanedOffset is
         [x, ..] if isIdentifierNonDigit x ->
-            (nextBytes, count) = consumeIdentifier bytes
-            nextTokens = List.append tokens { fileNum, offset, kind: Identifier }
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
 
-            preprocessTokenizeHelper nextBytes nextTokens (offset + count) fileNum
+            nextOffset = consumeIdentifier bytes cleanedOffset
+            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
         [x, ..] ->
             Err (UnexpectedCharacter x)
         [] ->
             Ok tokens
 
-skipCommentsAndWhiteSpace = \bytes ->
-    # TODO: actually implement.
-    bytes
+consumeCommentsAndWhitespace = \bytes, offset ->
+    when List.drop bytes offset is
+        ['\\', '\\', ..] ->
+            crash "TODO: consume to new line"
+        ['\\', '*', ..] ->
+            crash "TODO: consume to */"
+        # [x, ..] if isWhitespace x -> Some reason this is breaking alias analysis
+        [x, ..] ->
+            if isWhitespace x then
+                consumeCommentsAndWhitespace bytes (offset + 1)
+            else
+                offset
+        _ ->
+            offset
 
-consumeIdentifier = \bytes ->
-    helper = \b, count ->
-        when b is
-            [x, ..] if isIdentifier x ->
-                helper (List.dropFirst b) (count + 1)
-            _ ->
-                (b, count)
+isWhitespace = \x ->
+    (x >= '\t' && x <= '\r') || (x == ' ')
 
-    helper bytes 0
+consumeIdentifier = \bytes, offset ->
+    when List.get bytes offset is
+        Ok x if isIdentifier x ->
+            consumeIdentifier bytes (offset + 1)
+        _ ->
+            offset
 
 isIdentifier = \x ->
     (isIdentifierNonDigit x) || (x >= '0' && x <= '9')
