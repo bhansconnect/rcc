@@ -51,11 +51,54 @@ PPKind : [
     RParen,
     LSquiggle,
     RSquiggle,
+    Dot,
+    Arrow,
+    Inc,
+    Dec,
+    BitAnd,
+    Mul,
+    Add,
+    Sub,
+    BitNot,
+    Not,
+    Div,
+    Mod,
+    LShift,
+    RShift,
+    Lt,
+    Gt,
+    Lte,
+    Gte,
+    Eq,
+    Ne,
+    Xor,
+    BitOr,
+    And,
+    Or,
+    QuestionMark,
+    Colon,
+    Semicolon,
+    DotDotDot,
+    Assign,
+    MulAssign,
+    DivAssign,
+    ModAssign,
+    AddAssign,
+    SubAssign,
+    LShiftAssign,
+    RShiftAssign,
+    BitAndAssign,
+    XorAssign,
+    BitOrAssign,
+    Comma,
+    HashHash,
+
+    # TODO: add specific preprocessor tokens.
+    # Also a a general hash line for others.
+
 
     # Is this really needed? "each non-white-space character that cannot be one of the above"
     Other
-
-    # TODO: add all punctuators
 ]
 
 debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
@@ -79,6 +122,47 @@ debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
             RParen -> "RParen"
             LSquiggle -> "LSquiggle"
             RSquiggle -> "RSquiggle"
+            Dot -> "Dot"
+            Arrow-> "Arrow"
+            Inc -> "Inc"
+            Dec -> "Dec"
+            BitAnd -> "BitAnd"
+            Mul -> "Mul"
+            Add -> "Add"
+            Sub -> "Sub"
+            BitNot -> "BitNot"
+            Not -> "Not"
+            Div -> "Div"
+            Mod -> "Mod"
+            LShift -> "LShift"
+            RShift -> "RShift"
+            Lt -> "Lt"
+            Gt -> "Gt"
+            Lte -> "Lte"
+            Gte -> "Gte"
+            Eq -> "Eq"
+            Ne -> "Ne"
+            Xor -> "Xor"
+            BitOr -> "BitOr"
+            And -> "And"
+            Or -> "Or"
+            QuestionMark -> "QuestionMark"
+            Colon -> "Colon"
+            Semicolon -> "Semicolon"
+            DotDotDot -> "DotDotDot"
+            Assign -> "Assign"
+            MulAssign -> "MulAssign"
+            DivAssign -> "DivAssign"
+            ModAssign -> "ModAssign"
+            AddAssign -> "AddAssign"
+            SubAssign -> "SubAssign"
+            LShiftAssign -> "LShiftAssign"
+            RShiftAssign -> "RShiftAssign"
+            BitAndAssign -> "BitAndAssign"
+            XorAssign -> "XorAssign"
+            BitOrAssign -> "BitOrAssign"
+            Comma -> "Comma"
+            HashHash -> "HashHash"
             Other -> "Other"
 
     "{ file: \(fileNumStr), line: \(lineStr), col: \(colStr), kind: \(kindStr) }"
@@ -105,7 +189,54 @@ preprocessTokenize = \bytes, fileNum ->
 preprocessTokenizeHelper : List U8, List PPToken, Nat, U8 -> Result (List PPToken) _
 preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
     cleanedOffset = consumeCommentsAndWhitespace bytes offset
+    # Wild guess, the perf of this will be pretty bad and I will need to do it a different way.
     when List.drop bytes cleanedOffset is
+        ['.', '.', '.', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum DotDotDot 3
+        ['<', '<', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LShiftAssign 3
+        ['>', '>', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RShiftAssign 3
+        ['-', '>', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Arrow 2
+        ['+', '+', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Inc 2
+        ['-', '-', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Dec 2
+        ['<', '<', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LShift 2
+        ['>', '>', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RShift 2
+        ['<', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Lte 2
+        ['>', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Gte 2
+        ['=', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Eq 2
+        ['!', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Ne 2
+        ['&', '&', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum And 2
+        ['|', '|', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Or 2
+        ['*', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum MulAssign 2
+        ['/', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum DivAssign 2
+        ['%', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum ModAssign 2
+        ['+', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum AddAssign 2
+        ['-', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum SubAssign 2
+        ['&', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum BitAndAssign 2
+        ['^', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum XorAssign 2
+        ['|', '=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum BitOrAssign 2
+        ['#', '#', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum HashHash 2
         ['[', ..] ->
             addPunctuator bytes tokens cleanedOffset fileNum LBracket 1
         [']', ..] ->
@@ -118,16 +249,57 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
             addPunctuator bytes tokens cleanedOffset fileNum LSquiggle 1
         ['}', ..] ->
             addPunctuator bytes tokens cleanedOffset fileNum RSquiggle 1
-        [x, ..] if isIdentifierNonDigit x ->
-            nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
-
-            nextOffset = consumeIdentifier bytes cleanedOffset
-            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+        ['.', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Dot 1
+        ['&', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum BitAnd 1
+        ['*', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Mul 1
+        ['+', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Add 1
+        ['-', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Sub 1
+        ['~', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum BitNot 1
+        ['!', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Not 1
+        ['/', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Div 1
+        ['%', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Mod 1
+        ['<', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Lt 1
+        ['>', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Gt 1
+        ['^', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Xor 1
+        ['|', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum BitOr 1
+        ['?', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum QuestionMark 1
+        [':', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Colon 1
+        [';', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Semicolon 1
+        ['=', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Assign 1
+        [',', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum Comma 1
         [x, ..] ->
-            Err (UnexpectedCharacter x)
+            if isIdentifierNonDigit x then
+                nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
+
+                nextOffset = consumeIdentifier bytes cleanedOffset
+                preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+            else
+                Err (UnexpectedCharacter x)
+        # [x, ..] if isIdentifierNonDigit x ->
+        # [x, ..] ->
+        #     Err (UnexpectedCharacter x)
         [] ->
             Ok tokens
 
+addPunctuator : List U8, List PPToken, Nat, U8, PPKind, Nat -> Result (List PPToken) _
 addPunctuator = \bytes, tokens, offset, fileNum, kind, size ->
     nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind }
 
