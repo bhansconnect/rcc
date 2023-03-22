@@ -222,113 +222,167 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
     # Wild guess, the perf of this will be pretty bad and I will need to do it a different way.
     when List.drop bytes cleanedOffset is
         ['%', ':', '%', ':', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum HashHash 4
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum HashHash 4
+            preprocessTokenizeHelper b t o f
         ['.', '.', '.', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum DotDotDot 3
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum DotDotDot 3
+            preprocessTokenizeHelper b t o f
         ['<', '<', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LShiftAssign 3
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LShiftAssign 3
+            preprocessTokenizeHelper b t o f
         ['>', '>', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RShiftAssign 3
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RShiftAssign 3
+            preprocessTokenizeHelper b t o f
         ['-', '>', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Arrow 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Arrow 2
+            preprocessTokenizeHelper b t o f
         ['+', '+', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Inc 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Inc 2
+            preprocessTokenizeHelper b t o f
         ['-', '-', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Dec 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Dec 2
+            preprocessTokenizeHelper b t o f
         ['<', '<', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LShift 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LShift 2
+            preprocessTokenizeHelper b t o f
         ['>', '>', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RShift 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RShift 2
+            preprocessTokenizeHelper b t o f
         ['<', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Lte 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Lte 2
+            preprocessTokenizeHelper b t o f
         ['>', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Gte 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Gte 2
+            preprocessTokenizeHelper b t o f
         ['=', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Eq 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Eq 2
+            preprocessTokenizeHelper b t o f
         ['!', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Ne 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Ne 2
+            preprocessTokenizeHelper b t o f
         ['&', '&', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum And 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum And 2
+            preprocessTokenizeHelper b t o f
         ['|', '|', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Or 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Or 2
+            preprocessTokenizeHelper b t o f
         ['*', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum MulAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum MulAssign 2
+            preprocessTokenizeHelper b t o f
         ['/', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum DivAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum DivAssign 2
+            preprocessTokenizeHelper b t o f
         ['%', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum ModAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum ModAssign 2
+            preprocessTokenizeHelper b t o f
         ['+', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum AddAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum AddAssign 2
+            preprocessTokenizeHelper b t o f
         ['-', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum SubAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum SubAssign 2
+            preprocessTokenizeHelper b t o f
         ['&', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum BitAndAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum BitAndAssign 2
+            preprocessTokenizeHelper b t o f
         ['^', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum XorAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum XorAssign 2
+            preprocessTokenizeHelper b t o f
         ['|', '=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum BitOrAssign 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum BitOrAssign 2
+            preprocessTokenizeHelper b t o f
         ['#', '#', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum HashHash 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum HashHash 2
+            preprocessTokenizeHelper b t o f
         ['<', ':', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LBracket 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LBracket 2
+            preprocessTokenizeHelper b t o f
         [':', '>', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RBracket 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RBracket 2
+            preprocessTokenizeHelper b t o f
         ['<', '%', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LSquiggle 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LSquiggle 2
+            preprocessTokenizeHelper b t o f
         ['%', '>', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RSquiggle 2
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RSquiggle 2
+            preprocessTokenizeHelper b t o f
         ['[', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LBracket 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LBracket 1
+            preprocessTokenizeHelper b t o f
         [']', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RBracket 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RBracket 1
+            preprocessTokenizeHelper b t o f
         ['(', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LParen 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LParen 1
+            preprocessTokenizeHelper b t o f
         [')', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RParen 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RParen 1
+            preprocessTokenizeHelper b t o f
         ['{', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum LSquiggle 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum LSquiggle 1
+            preprocessTokenizeHelper b t o f
         ['}', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum RSquiggle 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum RSquiggle 1
+            preprocessTokenizeHelper b t o f
         ['.', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Dot 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Dot 1
+            preprocessTokenizeHelper b t o f
         ['&', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum BitAnd 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum BitAnd 1
+            preprocessTokenizeHelper b t o f
         ['*', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Mul 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Mul 1
+            preprocessTokenizeHelper b t o f
         ['+', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Add 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Add 1
+            preprocessTokenizeHelper b t o f
         ['-', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Sub 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Sub 1
+            preprocessTokenizeHelper b t o f
         ['~', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum BitNot 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum BitNot 1
+            preprocessTokenizeHelper b t o f
         ['!', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Not 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Not 1
+            preprocessTokenizeHelper b t o f
         ['/', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Div 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Div 1
+            preprocessTokenizeHelper b t o f
         ['%', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Mod 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Mod 1
+            preprocessTokenizeHelper b t o f
         ['<', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Lt 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Lt 1
+            preprocessTokenizeHelper b t o f
         ['>', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Gt 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Gt 1
+            preprocessTokenizeHelper b t o f
         ['^', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Xor 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Xor 1
+            preprocessTokenizeHelper b t o f
         ['|', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum BitOr 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum BitOr 1
+            preprocessTokenizeHelper b t o f
         ['?', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum QuestionMark 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum QuestionMark 1
+            preprocessTokenizeHelper b t o f
         [':', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Colon 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Colon 1
+            preprocessTokenizeHelper b t o f
         [';', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Semicolon 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Semicolon 1
+            preprocessTokenizeHelper b t o f
         ['=', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Assign 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Assign 1
+            preprocessTokenizeHelper b t o f
         [',', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum Comma 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum Comma 1
+            preprocessTokenizeHelper b t o f
         ['\n', ..] ->
-            consumeToken bytes tokens cleanedOffset fileNum NewLine 1
+            (b, t, o, f) = consumeToken bytes tokens cleanedOffset fileNum NewLine 1
+            preprocessTokenizeHelper b t o f
         ['#', ..] ->
-            consumeDirective bytes tokens cleanedOffset fileNum
+            (b, t, o, f) = consumeDirective bytes tokens cleanedOffset fileNum
+            preprocessTokenizeHelper b t o f
         [x, ..] ->
             if isIdentifierNonDigit x then
                 nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
@@ -373,11 +427,11 @@ consumeDirective = \bytes, tokens, offset, fileNum ->
             consumeDirectiveIfComplete bytes tokens offset cleanedOffset 4 fileNum HashIf
         ['\n', ..] ->
             # This is a a hash, whitespace, and then a new line. Just ignore then entire line.
-            preprocessTokenizeHelper bytes tokens (cleanedOffset + 1) fileNum
+            (bytes, tokens, (cleanedOffset + 1), fileNum)
         _ ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind: HashNonDirective }
 
-            preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+            (bytes, nextTokens, cleanedOffset, fileNum)
 
 # Include is special because it means we may have a header name which has special parsing.
 consumeIncludeDirective = \bytes, tokens, baseOffset, cleanedOffset, fileNum ->
@@ -389,10 +443,10 @@ consumeIncludeDirective = \bytes, tokens, baseOffset, cleanedOffset, fileNum ->
             maybeConsumeHeaderName bytes nextTokens nextOffset fileNum
         Err OutOfBounds ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashInclude }
-            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+            (bytes, nextTokens, nextOffset, fileNum)
         Ok _ ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashNonDirective }
-            preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+            (bytes, nextTokens, cleanedOffset, fileNum)
 
 maybeConsumeHeaderName = \bytes, tokens, offset, fileNum ->
     cleanedOffset = consumeCommentsAndWhitespace bytes offset
@@ -401,14 +455,14 @@ maybeConsumeHeaderName = \bytes, tokens, offset, fileNum ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: LocalHeaderName }
             nextOffset = consumeLocalHeaderName bytes (cleanedOffset + 1)
 
-            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+            (bytes, nextTokens, nextOffset, fileNum)
         Ok '<' ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: SystemHeaderName }
             nextOffset = consumeSystemHeaderName bytes (cleanedOffset + 1)
 
-            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+            (bytes, nextTokens, nextOffset, fileNum)
         _ ->
-            preprocessTokenizeHelper bytes tokens cleanedOffset fileNum
+            (bytes, tokens, cleanedOffset, fileNum)
 
 
 consumeLocalHeaderName = \bytes, offset ->
@@ -435,20 +489,19 @@ consumeDirectiveIfComplete = \bytes, tokens, baseOffset, cleanedOffset, size, fi
     when List.get bytes nextOffset is
         Ok x if isWhitespace x || x == '\n' ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind }
-            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+            (bytes, nextTokens, nextOffset, fileNum)
         Err OutOfBounds ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind }
-            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+            (bytes, nextTokens, nextOffset, fileNum)
         Ok _ ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashNonDirective }
-            preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+            (bytes, nextTokens, cleanedOffset, fileNum)
 
 
-consumeToken : List U8, List PPToken, Nat, U8, PPKind, Nat -> Result (List PPToken) _
 consumeToken = \bytes, tokens, offset, fileNum, kind, size ->
     nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind }
 
-    preprocessTokenizeHelper bytes nextTokens (offset + size) fileNum
+    (bytes, nextTokens, (offset + size), fileNum)
 
 # We ignore newlines for this. They matter to the preprocessor.
 consumeCommentsAndWhitespace = \bytes, offset ->
