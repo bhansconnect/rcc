@@ -40,10 +40,12 @@ PPToken : {offset: U32, fileNum: U8, kind: PPKind}
 # The kinds of preprocessor tokens.
 PPKind : [
     Identifier,
-    HeaderName,
-    StringLiteral,
-    Number,
     CharacterConstant,
+    PPNumber,
+    StringLiteral,
+    SystemHeaderName,
+    LocalHeaderName,
+
 
     LBracket,
     RBracket,
@@ -93,9 +95,21 @@ PPKind : [
     Comma,
     HashHash,
 
-    # TODO: add specific preprocessor tokens.
-    # Also a a general hash line for others.
-
+    HashIf,
+    HashIfDef,
+    HashIfNDef,
+    HashElif,
+    HashElse,
+    HashEndIf,
+    HashInclude,
+    HashDefine,
+    HashUnDef,
+    HashLine,
+    HashError,
+    HashProgma,
+    HashNewLine,
+    HashNonDirective,
+    DirectiveNewLine, # New lines matter in directives to distinguish the end of sections.
 
     # Is this really needed? "each non-white-space character that cannot be one of the above"
     Other
@@ -112,10 +126,11 @@ debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
     kindStr =
         when kind is
             Identifier -> "Identifier"
-            HeaderName -> "HeaderName"
-            StringLiteral -> "StringLiteral"
-            Number -> "Number"
             CharacterConstant -> "CharacterConstant"
+            PPNumber -> "PPNumber"
+            StringLiteral -> "StringLiteral"
+            SystemHeaderName -> "SystemHeaderName"
+            LocalHeaderName -> "LocalHeaderName"
             LBracket -> "LBracket"
             RBracket -> "RBracket"
             LParen -> "LParen"
@@ -163,6 +178,21 @@ debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
             BitOrAssign -> "BitOrAssign"
             Comma -> "Comma"
             HashHash -> "HashHash"
+            HashIf -> "HashIf"
+            HashIfDef -> "HashIfDef"
+            HashIfNDef -> "HashIfNDef"
+            HashElif -> "HashElif"
+            HashElse -> "HashElse"
+            HashEndIf -> "HashEndIf"
+            HashInclude -> "HashInclude"
+            HashDefine -> "HashDefine"
+            HashUnDef -> "HashUnDef"
+            HashLine -> "HashLine"
+            HashError -> "HashError"
+            HashProgma -> "HashProgma"
+            HashNewLine -> "HashNewLine"
+            HashNonDirective -> "HashNonDirective"
+            DirectiveNewLine -> "DirectiveNewLine"
             Other -> "Other"
 
     "{ file: \(fileNumStr), line: \(lineStr), col: \(colStr), kind: \(kindStr) }"
