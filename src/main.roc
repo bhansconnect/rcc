@@ -345,9 +345,10 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
 
 consumeDirective = \bytes, tokens, offset, fileNum ->
     cleanedOffset = consumeCommentsAndWhitespace bytes (offset + 1)
+    # I really wonder how good or bad the perf of this will be.
     when List.drop bytes cleanedOffset is
         ['i', 'n', 'c', 'l', 'u', 'd', 'e', ..] ->
-            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 7 fileNum HashInclude
+            consumeIncludeDirective bytes tokens offset cleanedOffset fileNum
         ['d', 'e', 'f', 'i', 'n', 'e', ..] ->
             consumeDirectiveIfComplete bytes tokens offset cleanedOffset 6 fileNum HashDefine
         ['p', 'r', 'a', 'g', 'm', 'a', ..] ->
@@ -377,6 +378,56 @@ consumeDirective = \bytes, tokens, offset, fileNum ->
             nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind: HashNonDirective }
 
             preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+
+# Include is special because it means we may have a header name which has special parsing.
+consumeIncludeDirective = \bytes, tokens, baseOffset, cleanedOffset, fileNum ->
+    nextOffset = cleanedOffset + 7
+
+    when List.get bytes nextOffset is
+        Ok x if isWhitespace x || x == '\n' || x == '<' || x == '"' ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashInclude }
+            maybeConsumeHeaderName bytes nextTokens nextOffset fileNum
+        Err OutOfBounds ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashInclude }
+            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+        Ok _ ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashNonDirective }
+            preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+
+maybeConsumeHeaderName = \bytes, tokens, offset, fileNum ->
+    cleanedOffset = consumeCommentsAndWhitespace bytes offset
+    when List.get bytes cleanedOffset is
+        Ok '"' ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: LocalHeaderName }
+            nextOffset = consumeLocalHeaderName bytes (cleanedOffset + 1)
+
+            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+        Ok '<' ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: SystemHeaderName }
+            nextOffset = consumeSystemHeaderName bytes (cleanedOffset + 1)
+
+            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+        _ ->
+            preprocessTokenizeHelper bytes tokens cleanedOffset fileNum
+
+
+consumeLocalHeaderName = \bytes, offset ->
+    when List.get bytes offset is
+        Ok '"' ->
+            offset + 1
+        Ok '\n' | Err OutOfBounds ->
+            crash "Incomplete local header name"
+        Ok _ ->
+            consumeLocalHeaderName bytes (offset + 1)
+
+consumeSystemHeaderName = \bytes, offset ->
+    when List.get bytes offset is
+        Ok '>' ->
+            offset + 1
+        Ok '\n' | Err OutOfBounds ->
+            crash "Incomplete system header name"
+        Ok _ ->
+            consumeSystemHeaderName bytes (offset + 1)
 
 consumeDirectiveIfComplete = \bytes, tokens, baseOffset, cleanedOffset, size, fileNum, kind ->
     nextOffset = cleanedOffset + size
