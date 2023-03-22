@@ -109,7 +109,7 @@ PPKind : [
     HashProgma,
     HashNewLine,
     HashNonDirective,
-    DirectiveNewLine, # New lines matter in directives to distinguish the end of sections.
+    NewLine, # New lines matter in parsing directives to distinguish the end of sections.
 
     # Is this really needed? "each non-white-space character that cannot be one of the above"
     Other
@@ -192,7 +192,7 @@ debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
             HashProgma -> "HashProgma"
             HashNewLine -> "HashNewLine"
             HashNonDirective -> "HashNonDirective"
-            DirectiveNewLine -> "DirectiveNewLine"
+            NewLine -> "NewLine"
             Other -> "Other"
 
     "{ file: \(fileNumStr), line: \(lineStr), col: \(colStr), kind: \(kindStr) }"
@@ -222,109 +222,111 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
     # Wild guess, the perf of this will be pretty bad and I will need to do it a different way.
     when List.drop bytes cleanedOffset is
         ['%', ':', '%', ':', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum HashHash 4
+            consumeToken bytes tokens cleanedOffset fileNum HashHash 4
         ['.', '.', '.', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum DotDotDot 3
+            consumeToken bytes tokens cleanedOffset fileNum DotDotDot 3
         ['<', '<', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LShiftAssign 3
+            consumeToken bytes tokens cleanedOffset fileNum LShiftAssign 3
         ['>', '>', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RShiftAssign 3
+            consumeToken bytes tokens cleanedOffset fileNum RShiftAssign 3
         ['-', '>', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Arrow 2
+            consumeToken bytes tokens cleanedOffset fileNum Arrow 2
         ['+', '+', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Inc 2
+            consumeToken bytes tokens cleanedOffset fileNum Inc 2
         ['-', '-', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Dec 2
+            consumeToken bytes tokens cleanedOffset fileNum Dec 2
         ['<', '<', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LShift 2
+            consumeToken bytes tokens cleanedOffset fileNum LShift 2
         ['>', '>', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RShift 2
+            consumeToken bytes tokens cleanedOffset fileNum RShift 2
         ['<', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Lte 2
+            consumeToken bytes tokens cleanedOffset fileNum Lte 2
         ['>', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Gte 2
+            consumeToken bytes tokens cleanedOffset fileNum Gte 2
         ['=', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Eq 2
+            consumeToken bytes tokens cleanedOffset fileNum Eq 2
         ['!', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Ne 2
+            consumeToken bytes tokens cleanedOffset fileNum Ne 2
         ['&', '&', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum And 2
+            consumeToken bytes tokens cleanedOffset fileNum And 2
         ['|', '|', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Or 2
+            consumeToken bytes tokens cleanedOffset fileNum Or 2
         ['*', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum MulAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum MulAssign 2
         ['/', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum DivAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum DivAssign 2
         ['%', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum ModAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum ModAssign 2
         ['+', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum AddAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum AddAssign 2
         ['-', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum SubAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum SubAssign 2
         ['&', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum BitAndAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum BitAndAssign 2
         ['^', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum XorAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum XorAssign 2
         ['|', '=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum BitOrAssign 2
+            consumeToken bytes tokens cleanedOffset fileNum BitOrAssign 2
         ['#', '#', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum HashHash 2
+            consumeToken bytes tokens cleanedOffset fileNum HashHash 2
         ['<', ':', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LBracket 2
+            consumeToken bytes tokens cleanedOffset fileNum LBracket 2
         [':', '>', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RBracket 2
+            consumeToken bytes tokens cleanedOffset fileNum RBracket 2
         ['<', '%', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LSquiggle 2
+            consumeToken bytes tokens cleanedOffset fileNum LSquiggle 2
         ['%', '>', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RSquiggle 2
+            consumeToken bytes tokens cleanedOffset fileNum RSquiggle 2
         ['[', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LBracket 1
+            consumeToken bytes tokens cleanedOffset fileNum LBracket 1
         [']', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RBracket 1
+            consumeToken bytes tokens cleanedOffset fileNum RBracket 1
         ['(', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LParen 1
+            consumeToken bytes tokens cleanedOffset fileNum LParen 1
         [')', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RParen 1
+            consumeToken bytes tokens cleanedOffset fileNum RParen 1
         ['{', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum LSquiggle 1
+            consumeToken bytes tokens cleanedOffset fileNum LSquiggle 1
         ['}', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum RSquiggle 1
+            consumeToken bytes tokens cleanedOffset fileNum RSquiggle 1
         ['.', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Dot 1
+            consumeToken bytes tokens cleanedOffset fileNum Dot 1
         ['&', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum BitAnd 1
+            consumeToken bytes tokens cleanedOffset fileNum BitAnd 1
         ['*', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Mul 1
+            consumeToken bytes tokens cleanedOffset fileNum Mul 1
         ['+', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Add 1
+            consumeToken bytes tokens cleanedOffset fileNum Add 1
         ['-', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Sub 1
+            consumeToken bytes tokens cleanedOffset fileNum Sub 1
         ['~', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum BitNot 1
+            consumeToken bytes tokens cleanedOffset fileNum BitNot 1
         ['!', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Not 1
+            consumeToken bytes tokens cleanedOffset fileNum Not 1
         ['/', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Div 1
+            consumeToken bytes tokens cleanedOffset fileNum Div 1
         ['%', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Mod 1
+            consumeToken bytes tokens cleanedOffset fileNum Mod 1
         ['<', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Lt 1
+            consumeToken bytes tokens cleanedOffset fileNum Lt 1
         ['>', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Gt 1
+            consumeToken bytes tokens cleanedOffset fileNum Gt 1
         ['^', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Xor 1
+            consumeToken bytes tokens cleanedOffset fileNum Xor 1
         ['|', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum BitOr 1
+            consumeToken bytes tokens cleanedOffset fileNum BitOr 1
         ['?', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum QuestionMark 1
+            consumeToken bytes tokens cleanedOffset fileNum QuestionMark 1
         [':', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Colon 1
+            consumeToken bytes tokens cleanedOffset fileNum Colon 1
         [';', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Semicolon 1
+            consumeToken bytes tokens cleanedOffset fileNum Semicolon 1
         ['=', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Assign 1
+            consumeToken bytes tokens cleanedOffset fileNum Assign 1
         [',', ..] ->
-            addPunctuator bytes tokens cleanedOffset fileNum Comma 1
+            consumeToken bytes tokens cleanedOffset fileNum Comma 1
+        ['\n', ..] ->
+            consumeToken bytes tokens cleanedOffset fileNum NewLine 1
         [x, ..] ->
             if isIdentifierNonDigit x then
                 nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
@@ -339,12 +341,13 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
         [] ->
             Ok tokens
 
-addPunctuator : List U8, List PPToken, Nat, U8, PPKind, Nat -> Result (List PPToken) _
-addPunctuator = \bytes, tokens, offset, fileNum, kind, size ->
+consumeToken : List U8, List PPToken, Nat, U8, PPKind, Nat -> Result (List PPToken) _
+consumeToken = \bytes, tokens, offset, fileNum, kind, size ->
     nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind }
 
     preprocessTokenizeHelper bytes nextTokens (offset + size) fileNum
 
+# We ignore newlines for this. They matter to the preprocessor.
 consumeCommentsAndWhitespace = \bytes, offset ->
     when List.drop bytes offset is
         ['/', '/', ..] ->
@@ -379,7 +382,7 @@ consumeRestOfLine = \bytes, offset ->
             offset
 
 isWhitespace = \x ->
-    (x >= '\t' && x <= '\r') || (x == ' ')
+    (x >= '\t' && x <= '\r' && x != '\n') || (x == ' ')
 
 consumeIdentifier = \bytes, offset ->
     when List.get bytes offset is
