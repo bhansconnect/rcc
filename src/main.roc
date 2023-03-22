@@ -442,9 +442,9 @@ removeBackslashNewlinesRemaining = \in, out, mergeIndices ->
             (out, mergeIndices)
 
 
-okOrCrash = \x, msg ->
-    when x is
-        Ok y -> y
-        Err e ->
-            dbg e
-            crash msg
+okOrCrash = \res, msg ->
+    when res is
+        Ok x -> x
+        Err (UnexpectedCharacter x)->
+            xStr = Num.toStr x
+            crash "\(msg): UnexpectedCharacter \(xStr)"
