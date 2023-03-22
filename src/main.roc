@@ -27,9 +27,10 @@ main = \filename ->
 
     preprocessTokenize mergedBytes 0
     |> okOrCrash "failed to tokenize"
-    |> List.map (\tok -> debugDisplayPPToken tok mergedBytes mergeIndicies)
-    |> Str.joinWith "\n"
-    |> Str.toUtf8
+    |> List.walk [] (printPPToken mergedBytes)
+    # |> List.map (\tok -> debugDisplayPPToken tok mergedBytes mergeIndicies)
+    # |> Str.joinWith "\n"
+    # |> Str.toUtf8
     |> Stderr.raw
 
 # We are limitting the offset to a U32 and the file number to a U8.
@@ -114,6 +115,229 @@ PPKind : [
     # Is this really needed? "each non-white-space character that cannot be one of the above"
     Other
 ]
+
+
+printPPToken = \bytes ->
+    \buf, token ->
+        when token.kind is
+            Identifier ->
+                printIdentifier buf bytes token.offset
+                |> List.append ' '
+            CharacterConstant ->
+                # TODO
+                buf
+            PPNumber ->
+                # TODO
+                buf
+            StringLiteral ->
+                # TODO
+                buf
+            SystemHeaderName ->
+                # TODO
+                buf
+            LocalHeaderName ->
+                # TODO
+                buf
+            LBracket ->
+                buf
+                |> List.append '['
+            RBracket ->
+                buf
+                |> List.append ']'
+            LParen ->
+                buf
+                |> List.append '('
+            RParen ->
+                buf
+                |> List.append ')'
+            LSquiggle ->
+                buf
+                |> List.append '{'
+            RSquiggle ->
+                buf
+                |> List.append '}'
+            Dot ->
+                buf
+                |> List.append '.'
+            Arrow ->
+                buf
+                |> List.append '-'
+                |> List.append '>'
+            Inc ->
+                buf
+                |> List.append '+'
+                |> List.append '+'
+            Dec ->
+                buf
+                |> List.append '-'
+                |> List.append '-'
+            BitAnd ->
+                buf
+                |> List.append '&'
+            Mul ->
+                buf
+                |> List.append '*'
+            Add ->
+                buf
+                |> List.append '+'
+            Sub ->
+                buf
+                |> List.append '-'
+            BitNot ->
+                buf
+                |> List.append '~'
+            Not ->
+                buf
+                |> List.append '!'
+            Div ->
+                buf
+                |> List.append '/'
+            Mod ->
+                buf
+                |> List.append '%'
+            LShift ->
+                buf
+                |> List.append '<'
+                |> List.append '<'
+            RShift ->
+                buf
+                |> List.append '>'
+                |> List.append '>'
+            Lt ->
+                buf
+                |> List.append '<'
+            Gt ->
+                buf
+                |> List.append '>'
+            Lte ->
+                buf
+                |> List.append '<'
+                |> List.append '='
+            Gte ->
+                buf
+                |> List.append '>'
+                |> List.append '='
+            Eq ->
+                buf
+                |> List.append '='
+                |> List.append '='
+            Ne ->
+                buf
+                |> List.append '!'
+                |> List.append '='
+            Xor ->
+                buf
+                |> List.append '^'
+            BitOr ->
+                buf
+                |> List.append '|'
+            And ->
+                buf
+                |> List.append '&'
+                |> List.append '&'
+            Or ->
+                buf
+                |> List.append '|'
+                |> List.append '|'
+            QuestionMark ->
+                buf
+                |> List.append '?'
+            Colon ->
+                buf
+                |> List.append ':'
+            Semicolon ->
+                buf
+                |> List.append ';'
+            DotDotDot ->
+                buf
+                |> List.append '.'
+                |> List.append '.'
+                |> List.append '.'
+            Assign ->
+                buf
+                |> List.append '='
+            MulAssign ->
+                buf
+                |> List.append '*'
+                |> List.append '='
+            DivAssign ->
+                buf
+                |> List.append '/'
+                |> List.append '='
+            ModAssign ->
+                buf
+                |> List.append '%'
+                |> List.append '='
+            AddAssign ->
+                buf
+                |> List.append '+'
+                |> List.append '='
+            SubAssign ->
+                buf
+                |> List.append '-'
+                |> List.append '='
+            LShiftAssign ->
+                buf
+                |> List.append '<'
+                |> List.append '<'
+                |> List.append '='
+            RShiftAssign ->
+                buf
+                |> List.append '>'
+                |> List.append '>'
+                |> List.append '='
+            BitAndAssign ->
+                buf
+                |> List.append '&'
+                |> List.append '='
+            XorAssign ->
+                buf
+                |> List.append '^'
+                |> List.append '='
+            BitOrAssign ->
+                buf
+                |> List.append '|'
+                |> List.append '='
+            Comma ->
+                buf
+                |> List.append ','
+            NewLine ->
+                buf
+                |> List.append '\n'
+            Other ->
+                when List.get bytes (Num.toNat token.offset) is
+                    Ok x ->
+                        buf
+                        |> List.append x
+                    Err _ ->
+                        crash "this should be impossible"
+            HashHash
+            | HashIf
+            | HashIfDef
+            | HashIfNDef
+            | HashElif
+            | HashElse
+            | HashEndIf
+            | HashInclude
+            | HashDefine
+            | HashUnDef
+            | HashLine
+            | HashError
+            | HashPragma
+            | HashNewLine
+            | HashNonDirective ->
+                # non printing directives
+                # TODO: some of these should get fully removed, crash on them.
+                buf
+
+
+printIdentifier = \buf, bytes, offset ->
+    when List.get bytes (Num.toNat offset) is
+        Ok x if isIdentifier x ->
+            printIdentifier (List.append buf x) bytes (offset + 1)
+        _ ->
+            buf
+
 
 debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
     fileNumStr = Num.toStr fileNum
