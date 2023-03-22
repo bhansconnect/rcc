@@ -106,7 +106,7 @@ PPKind : [
     HashUnDef,
     HashLine,
     HashError,
-    HashProgma,
+    HashPragma,
     HashNewLine,
     HashNonDirective,
     NewLine, # New lines matter in parsing directives to distinguish the end of sections.
@@ -189,7 +189,7 @@ debugDisplayPPToken = \{fileNum, offset, kind}, mergedBytes, mergeIndicies ->
             HashUnDef -> "HashUnDef"
             HashLine -> "HashLine"
             HashError -> "HashError"
-            HashProgma -> "HashProgma"
+            HashPragma -> "HashPragma"
             HashNewLine -> "HashNewLine"
             HashNonDirective -> "HashNonDirective"
             NewLine -> "NewLine"
@@ -327,6 +327,8 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
             consumeToken bytes tokens cleanedOffset fileNum Comma 1
         ['\n', ..] ->
             consumeToken bytes tokens cleanedOffset fileNum NewLine 1
+        ['#', ..] ->
+            consumeDirective bytes tokens cleanedOffset fileNum
         [x, ..] ->
             if isIdentifierNonDigit x then
                 nextTokens = List.append tokens { fileNum, offset: Num.toU32 cleanedOffset, kind: Identifier }
@@ -340,6 +342,56 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
         #     Err (UnexpectedCharacter x)
         [] ->
             Ok tokens
+
+consumeDirective = \bytes, tokens, offset, fileNum ->
+    cleanedOffset = consumeCommentsAndWhitespace bytes (offset + 1)
+    when List.drop bytes cleanedOffset is
+        ['i', 'n', 'c', 'l', 'u', 'd', 'e', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 7 fileNum HashInclude
+        ['d', 'e', 'f', 'i', 'n', 'e', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 6 fileNum HashDefine
+        ['p', 'r', 'a', 'g', 'm', 'a', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 6 fileNum HashPragma
+        ['e', 'n', 'd', 'd', 'e', 'f', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 6 fileNum HashEndIf
+        ['i', 'f', 'n', 'd', 'e', 'f', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 6 fileNum HashIfNDef
+        ['i', 'f', 'd', 'e', 'f', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 5 fileNum HashIfDef
+        ['u', 'n', 'd', 'e', 'f', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 5 fileNum HashUnDef
+        ['e', 'r', 'r', 'o', 'r', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 5 fileNum HashError
+        ['l', 'i', 'n', 'e', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 4 fileNum HashLine
+        ['e', 'l', 'i', 'f', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 4 fileNum HashElif
+        ['e', 'l', 's', 'e', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 4 fileNum HashElse
+        ['i', 'f', ..] ->
+            consumeDirectiveIfComplete bytes tokens offset cleanedOffset 4 fileNum HashIf
+        ['\n', ..] ->
+            # This is a a hash, whitespace, and then a new line. Just ignore then entire line.
+            preprocessTokenizeHelper bytes tokens (cleanedOffset + 1) fileNum
+        _ ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 offset, kind: HashNonDirective }
+
+            preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+
+consumeDirectiveIfComplete = \bytes, tokens, baseOffset, cleanedOffset, size, fileNum, kind ->
+    nextOffset = cleanedOffset + size
+
+    when List.get bytes nextOffset is
+        Ok x if isWhitespace x || x == '\n' ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind }
+            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+        Err OutOfBounds ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind }
+            preprocessTokenizeHelper bytes nextTokens nextOffset fileNum
+        Ok _ ->
+            nextTokens = List.append tokens { fileNum, offset: Num.toU32 baseOffset, kind: HashNonDirective }
+            preprocessTokenizeHelper bytes nextTokens cleanedOffset fileNum
+
 
 consumeToken : List U8, List PPToken, Nat, U8, PPKind, Nat -> Result (List PPToken) _
 consumeToken = \bytes, tokens, offset, fileNum, kind, size ->
