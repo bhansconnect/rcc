@@ -191,6 +191,8 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
     cleanedOffset = consumeCommentsAndWhitespace bytes offset
     # Wild guess, the perf of this will be pretty bad and I will need to do it a different way.
     when List.drop bytes cleanedOffset is
+        ['%', ':', '%', ':', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum HashHash 4
         ['.', '.', '.', ..] ->
             addPunctuator bytes tokens cleanedOffset fileNum DotDotDot 3
         ['<', '<', '=', ..] ->
@@ -237,6 +239,14 @@ preprocessTokenizeHelper = \bytes, tokens, offset, fileNum ->
             addPunctuator bytes tokens cleanedOffset fileNum BitOrAssign 2
         ['#', '#', ..] ->
             addPunctuator bytes tokens cleanedOffset fileNum HashHash 2
+        ['<', ':', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LBracket 2
+        [':', '>', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RBracket 2
+        ['<', '%', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum LSquiggle 2
+        ['%', '>', ..] ->
+            addPunctuator bytes tokens cleanedOffset fileNum RSquiggle 2
         ['[', ..] ->
             addPunctuator bytes tokens cleanedOffset fileNum LBracket 1
         [']', ..] ->
